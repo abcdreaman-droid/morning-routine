@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morning Dash | Ultimate Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d0e10;
+            --card-bg: #16181a;
+            --text-main: #e2e2e2;
+            --text-dim: #777;
+            --accent: #c9a050;
+            --input-bg: #222;
+            --border: #222;
+            --shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        body.light-mode {
+            --bg-color: #fcfcfc;
+            --card-bg: #ffffff;
+            --text-main: #1a1a1b;
+            --text-dim: #a0a0a0;
+            --accent: #b08d42;
+            --input-bg: #f5f5f7;
+            --border: #ececec;
+            --shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Inter', sans-serif; margin: 0; transition: 0.3s ease; display: flex; justify-content: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 600px; padding: 50px 20px; position: relative; }
+        
+        /* 테마 스위치 */
+        .theme-toggle { position: absolute; top: 15px; right: 20px; cursor: pointer; font-size: 1.4rem; background: none; border: none; color: var(--accent); z-index: 10; }
+
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { font-family: 'Playfair Display', serif; font-size: 2.2rem; margin: 0; letter-spacing: -1px; }
+
+        /* 대시보드 & 캘린더 */
+        .dashboard { background: var(--card-bg); padding: 25px; border-radius: 24px; margin-bottom: 30px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .calendar-week { display: flex; justify-content: space-between; margin-bottom: 25px; gap: 8px; }
+        .day-box { text-align: center; flex: 1; padding: 12px 5px; border-radius: 14px; font-size: 0.8rem; background: var(--input-bg); transition: 0.3s; border: 1px solid transparent; }
+        .day-box.active { background: var(--accent); color: white; font-weight: bold; border-color: var(--accent); transform: translateY(-3px); }
+        .day-box span { display: block; font-size: 0.6rem; opacity: 0.6; margin-bottom: 4px; text-transform: uppercase; }
+
+        .progress-section { margin-top: 10px; }
+        .progress-info { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--accent); font-weight: 600; margin-bottom: 8px; }
+        .progress-bar { width: 100%; height: 6px; background: var(--input-bg); border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+
+        /* 탭 메뉴 */
+        .tabs { display: flex; gap: 25px; margin-bottom: 25px; border-bottom: 1px solid var(--border); }
+        .tab { padding: 12px 5px; cursor: pointer; color: var(--text-dim); font-size: 0.85rem; font-weight: 600; transition: 0.3s; letter-spacing: 1px; }
+        .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+        /* 입력 폼 */
+        .input-card { background: var(--card-bg); padding: 20px; border-radius: 20px; margin-bottom: 30px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .input-row { display: flex; gap: 10px; margin-bottom: 12px; }
+        input, select, .add-btn { background: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); padding: 12px; border-radius: 12px; outline: none; font-family: inherit; }
+        input { flex: 1; font-size: 0.95rem; }
+        .add-btn { background: var(--accent); color: white; font-weight: bold; border: none; cursor: pointer; padding: 0 20px; }
+
+        .cat-row { display: flex; align-items: center; gap: 10px; }
+        .cat-edit-btn { background: none; border: none; color: var(--text-dim); font-size: 0.7rem; cursor: pointer; text-decoration: underline; white-space: nowrap; }
+
+        /* 타스크 리스트 */
+        .task-list { list-style: none; padding: 0; display: none; }
+        .task-list.active { display: block; }
+        .task-item { background: var(--card-bg); padding: 18px; border-radius: 18px; display: flex; align-items: center; margin-bottom: 15px; border: 1px solid var(--border); box-shadow: var(--shadow); transition: 0.3s; }
+        .task-item.completed { opacity: 0.4; filter: grayscale(1); transform: scale(0.98); }
+        .checkbox { width: 22px; height: 22px; border: 2px solid var(--accent); border-radius: 8px; cursor: pointer; margin-right: 15px; flex-shrink: 0; transition: 0.2s; position: relative; }
+        .completed .checkbox { background: var(--accent); }
+        .completed .checkbox::after { content: '✓'; color: white; font-size: 14px; position: absolute; left: 4px; top: -1px; }
+        
+        .task-info { flex: 1; }
+        .tag { font-size: 0.65rem; padding: 3px 8px; border-radius: 6px; margin-right: 10px; background: var(--input-bg); color: var(--accent); font-weight: bold; text-transform: uppercase; }
+        .task-text { font-size: 1rem; cursor: text; }
+        .delete-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; margin-left: 10px; font-size: 1.1rem; }
+    </style>
+</head>
+<body class="dark-mode">
+
+<button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">🌙</button>
+
+<div class="container">
+    <header>
+        <h1>Morning Dash</h1>
+    </header>
+
+    <div class="dashboard">
+        <div class="calendar-week" id="weekGrid"></div>
+        
+        <div class="progress-section">
+            <div class="progress-info">
+                <span id="tabTitleDisplay">ROUTINE PROGRESS</span>
+                <span id="progressText">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" id="tab-routine" onclick="switchTab('routine')">ROUTINE</div>
+        <div class="tab" id="tab-todo" onclick="switchTab('todo')">TO-DO TODAY</div>
+    </div>
+
+    <div class="input-card">
+        <div class="input-row">
+            <input type="text" id="taskInput" placeholder="새로운 에너지를 입력하세요...">
+            <button class="add-btn" onclick="addTask()">ADD</button>
+        </div>
+        <div class="cat-row">
+            <select id="categorySelect" style="flex: 1;"></select>
+            <button class="cat-edit-btn" onclick="editCategoryName()">Edit Category</button>
+            <select id="priorityInput" style="flex: 1;">
+                <option value="high">🔥 High Priority</option>
+                <option value="mid" selected>⚡ Mid Priority</option>
+                <option value="low">🌱 Low Priority</option>
+            </select>
+        </div>
+    </div>
+
+    <ul class="task-list active" id="routineList"></ul>
+    <ul class="task-list" id="todoList"></ul>
+</div>
+
+<script>
+    // 1. 데이터 초기화
+    let routines = JSON.parse(localStorage.getItem('m_routines')) || [];
+    let todos = JSON.parse(localStorage.getItem('m_todos')) || [];
+    let categories = JSON.parse(localStorage.getItem('m_cats')) || ["💼 Work", "🏠 Personal", "🧘 Health", "📚 Study"];
+    let currentTab = 'routine';
+    let isDarkMode = true;
+
+    window.onload = () => {
+        initCalendar();
+        updateCategorySelect();
+        render();
+    };
+
+    // 2. 테마 토글
+    function toggleTheme() {
+        isDarkMode = !isDarkMode;
+        document.body.classList.toggle('light-mode');
+        document.getElementById('themeIcon').innerText = isDarkMode ? '🌙' : '☀️';
+    }
+
+    // 3. 캘린더 생성
+    function initCalendar() {
+        const grid = document.getElementById('weekGrid');
+        const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        const today = new Date();
+        grid.innerHTML = '';
+        for (let i = -3; i <= 3; i++) {
+            const d = new Date(); d.setDate(today.getDate() + i);
+            const active = i === 0 ? 'active' : '';
+            grid.innerHTML += `<div class="day-box ${active}"><span>${days[d.getDay()]}</span>${d.getDate()}</div>`;
+        }
+    }
+
+    // 4. 카테고리 편집
+    function editCategoryName() {
+        const select = document.getElementById('categorySelect');
+        const oldVal = select.value;
+        const newVal = prompt("수정할 카테고리 이름을 입력하세요 (이모티콘 가능):", oldVal);
+        if (newVal && newVal.trim() !== "") {
+            const idx = categories.indexOf(oldVal);
+            if (idx !== -1) {
+                categories[idx] = newVal.trim();
+                localStorage.setItem('m_cats', JSON.stringify(categories));
+                updateCategorySelect();
+                render();
+            }
+        }
+    }
+
+    function updateCategorySelect() {
+        const select = document.getElementById('categorySelect');
+        select.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+    }
+
+    // 5. 탭 전환
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        document.querySelectorAll('.task-list').forEach(l => l.classList.remove('active'));
+        document.getElementById(`${tab}List`).classList.add('active');
+        document.getElementById('tabTitleDisplay').innerText = `${tab.toUpperCase()} PROGRESS`;
+        render();
+    }
+
+    // 6. 렌더링 및 핵심 로직
+    function render() {
+        renderList('routine', routines);
+        renderList('todo', todos);
+        updateProgress();
+        localStorage.setItem('m_routines', JSON.stringify(routines));
+        localStorage.setItem('m_todos', JSON.stringify(todos));
+    }
+
+    function renderList(type, data) {
+        const listEl = document.getElementById(`${type}List`);
+        listEl.innerHTML = '';
+        const priorityMap = { high: 1, mid: 2, low: 3 };
+        data.sort((a, b) => priorityMap[a.priority] - priorityMap[b.priority]);
+
+        data.forEach((task, index) => {
+            const li = document.createElement('li');
+            li.className = `task-item ${task.completed ? 'completed' : ''}`;
+            li.innerHTML = `
+                <div class="checkbox" onclick="toggleTask('${type}', ${index})"></div>
+                <div class="task-info">
+                    <span class="tag">${task.category}</span>
+                    <span class="task-text" contenteditable="true" onblur="editTask('${type}', ${index}, this)">${task.text}</span>
+                </div>
+                <button class="delete-btn" onclick="deleteTask('${type}', ${index})">✕</button>
+            `;
+            listEl.appendChild(li);
+        });
+    }
+
+    function addTask() {
+        const input = document.getElementById('taskInput');
+        if (!input.value.trim()) return;
+        const task = {
+            text: input.value,
+            category: document.getElementById('categorySelect').value,
+            priority: document.getElementById('priorityInput').value,
+            completed: false
+        };
+        if (currentTab === 'routine') routines.push(task); else todos.push(task);
+        input.value = '';
+        render();
+    }
+
+    function toggleTask(type, index) {
+        const data = type === 'routine' ? routines : todos;
+        data[index].completed = !data[index].completed;
+        render();
+    }
+
+    function deleteTask(type, index) {
+        const data = type === 'routine' ? routines : todos;
+        data.splice(index, 1);
+        render();
+    }
+
+    function editTask(type, index, el) {
+        const data = type === 'routine' ? routines : todos;
+        data[index].text = el.innerText;
+        localStorage.setItem(`m_${type}s`, JSON.stringify(data));
+        updateProgress();
+    }
+
+    function updateProgress() {
+        const data = currentTab === 'routine' ? routines : todos;
+        if (data.length === 0) {
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressText').innerText = '0%';
+            return;
+        }
+        const done = data.filter(t => t.completed).length;
+        const percent = Math.round((done / data.length) * 100);
+        document.getElementById('progressFill').style.width = percent + '%';
+        document.getElementById('progressText').innerText = percent + '%';
+    }
+</script>
+</body>
+</html>
